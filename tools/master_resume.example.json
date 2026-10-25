@@ -57,9 +57,10 @@
   },
   "otherRegion": "Rest of [COUNTRY]",
   "regions": [
-    {"name": "[HOME_REGION]", "label": "near home", "bonus": 15, "match": ["[city]", "[nearby town]"]},
-    {"name": "[PRIORITY_PROVINCE_OR_STATE]", "bonus": 10, "match": ["[province name]", ", [XX]"]}
+    {"name": "[HOME_REGION]", "label": "near home", "province": "[XX]", "bonus": 15, "match": ["[city]", "[nearby town]"]},
+    {"name": "[PRIORITY_PROVINCE_OR_STATE]", "province": "[XX]", "bonus": 10, "match": ["[province name]", ", [XX]"]}
   ],
+  "relocationNote": "(Relocating)",
   "letter": {
     "intro": "I hold a [DEGREE] from [UNIVERSITY] and bring [N]+ years of experience in {focus}.",
     "focus": {"QE": "[what you did in quality roles]", "PM": "[what you did coordinating projects]", "SCM": "[supply chain work]"},

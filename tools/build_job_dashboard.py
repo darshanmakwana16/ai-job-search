@@ -309,6 +309,48 @@ def bullet_tags(profile: dict, lex) -> None:
         group["itemTags"] = [terms_in(i, lex) for i in group.get("items", [])]
 
 
+PROVINCES = {
+    "ontario": "ON", "newfoundland and labrador": "NL", "newfoundland": "NL", "quebec": "QC", "qu\u00e9bec": "QC", "british columbia": "BC",
+    "alberta": "AB", "saskatchewan": "SK", "manitoba": "MB", "nova scotia": "NS", "new brunswick": "NB", "prince edward island": "PE",
+    "yukon": "YT", "northwest territories": "NT", "nunavut": "NU",
+}
+PROVINCE_CODES = set(PROVINCES.values())
+# LinkedIn's "Greater <city> Metropolitan Area" names no province.
+METRO_PROVINCE = {"toronto": "ON", "ottawa": "ON", "windsor": "ON", "london": "ON", "hamilton": "ON", "kitchener": "ON", "st. john's": "NL",
+                  "montreal": "QC", "quebec": "QC", "vancouver": "BC", "calgary": "AB", "edmonton": "AB", "winnipeg": "MB", "halifax": "NS", "regina": "SK", "saskatoon": "SK"}
+
+
+def city_province(location: str, region_province: str = "") -> str:
+    """'Mississauga, Ontario, Canada' -> 'Mississauga, ON'; 'Greater St. John's Metropolitan Area' -> "St. John's, NL";
+    a province on its own stays a province; 'Canada' or 'Remote' -> ''."""
+    parts = [p.strip() for p in (location or "").split(",") if p.strip() and p.strip().lower() != "canada"]
+    if not parts or parts[0].lower() in ("remote", "hybrid"):
+        return ""
+    head = parts[0]
+    metro = re.match(r"(?i)^greater\s+(.+?)(?:\s+metropolitan)?\s+area$", head)
+    if metro:
+        head = metro.group(1).split("-")[0].strip()
+    if head.lower() in PROVINCES:
+        return head
+    prov = next((p.upper() if p.upper() in PROVINCE_CODES else PROVINCES[p.lower()] for p in parts[1:]
+                 if p.upper() in PROVINCE_CODES or p.lower() in PROVINCES), "")
+    prov = prov or METRO_PROVINCE.get(head.lower(), "") or region_province
+    return f"{head}, {prov}" if prov else head
+
+
+def resume_location(job: dict, region_name: str, profile: dict) -> tuple:
+    """The location line for a resume tailored to this job: the job's own city,
+    marked as a relocation when it is outside the candidate's home region."""
+    regions = profile.get("regions", [])
+    region = next((r for r in regions if r.get("name") == region_name), {})
+    place = city_province(job.get("location", ""), region.get("province", ""))
+    if not place:
+        return profile.get("location", ""), ""
+    home = regions[0].get("name") if regions else None
+    note = "" if region_name == home else " " + profile.get("relocationNote", "(Relocating)")
+    return place + note, place
+
+
 def classify_region(location: str, regions: list, other: str = "Elsewhere") -> dict:
     loc = (location or "").lower()
     for region in regions:
@@ -489,6 +531,7 @@ def build(profile: dict, jobs: list, companies: list, min_score: int) -> dict:
         record = {k: job.get(k, "") for k in ("id", "title", "company", "companyUrl", "location", "date", "url", "source", "salary", "seniority", "employmentType")}
         record["alsoOn"] = job.get("alsoOn", [])
         record.update(scored)
+        record["resumeLocation"], record["place"] = resume_location(job, scored["region"], profile)
         record["links"] = referral_links(job, scored["track"], scored["region"], profile)
         record.update(build_messages(job, scored["hooks"], profile))
         out.append(record)

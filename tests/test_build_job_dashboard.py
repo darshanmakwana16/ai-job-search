@@ -138,6 +138,34 @@ class KeywordAlignmentTest(unittest.TestCase):
         self.assertFalse(any(t.startswith("x:AODA") for t in rows))
 
 
+class ResumeLocationTest(unittest.TestCase):
+    def test_city_province_normalizes_every_portal_format(self):
+        cases = {
+            ("Mississauga, Ontario, Canada", ""): "Mississauga, ON",
+            ("Paradise, NL", ""): "Paradise, NL",
+            ("Greater St. John's Metropolitan Area", "NL"): "St. John's, NL",
+            ("Greater Kitchener-Cambridge-Waterloo Metropolitan Area", "ON"): "Kitchener, ON",
+            ("Greater Toronto Area, Canada", ""): "Toronto, ON",
+            ("Newfoundland and Labrador, Canada", "NL"): "Newfoundland and Labrador",
+            ("Canada", ""): "",
+            ("Remote", ""): "",
+        }
+        for (loc, prov), want in cases.items():
+            self.assertEqual(bjd.city_province(loc, prov), want, loc)
+
+    def test_resume_uses_the_job_city_and_marks_relocation(self):
+        home = build(job(location="Hometown, Ontario, Canada"))["jobs"][0]
+        away = build(job(location="Calgary, Alberta, Canada"))["jobs"][0]
+        self.assertEqual(home["resumeLocation"], "Hometown, ON")
+        self.assertEqual(away["resumeLocation"], "Calgary, AB (Relocating)")
+        self.assertEqual(away["place"], "Calgary, AB")
+
+    def test_unplaceable_job_keeps_the_profile_location(self):
+        profile = dict(PROFILE, location="Hometown, ON (Willing to Relocate)")
+        rec = bjd.build(json.loads(json.dumps(profile)), [job(location="Canada")], [], 0)["jobs"][0]
+        self.assertEqual(rec["resumeLocation"], "Hometown, ON (Willing to Relocate)")
+
+
 class ReferralTest(unittest.TestCase):
     def test_messages_fit_linkedin_limits_even_for_long_names(self):
         long = job(title="Specialist, Supplier Quality Engineering, Mechanical Systems and Structures",

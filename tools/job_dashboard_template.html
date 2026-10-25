@@ -258,6 +258,11 @@ dialog::backdrop { background: rgba(10, 16, 22, .55); }
         <div id="kw-groups"></div>
       </div>
       <div>
+        <h4>Location on resume</h4>
+        <input type="text" id="ed-location" aria-label="Location on resume">
+        <p class="note" style="margin-top:4px">Set to this job's city. "(Relocating)" marks jobs outside your home region, so a recruiter knows you'll move there.</p>
+      </div>
+      <div>
         <h4>Headline</h4>
         <input type="text" id="ed-headline" aria-label="Resume headline">
       </div>
@@ -587,7 +592,7 @@ function tailor(j) {
   const projScore = (p) => (p.bulletTags || []).flat().filter((t) => hit.has(t)).length;
   const porder = T.projectOrder || [];
   const projects = P.projects.slice().sort((a, b) => projScore(b) - projScore(a) || porder.indexOf(a.title) - porder.indexOf(b.title)).map((p) => ({ ...p, bullets: sortBullets(p) }));
-  const r = { name: P.name, headline: targetHeadline(j), tagline, summary, contact: [P.location, P.phone, P.email, P.linkedin],
+  const r = { name: P.name, headline: targetHeadline(j), tagline, summary, contact: [j.resumeLocation || P.location, P.phone, P.email, P.linkedin],
     skills, experience, projects, additional: P.additional || [], education: P.education, certifications: P.certifications, core: [], notes: [] };
   return align(r, j);
 }
@@ -636,6 +641,7 @@ function openDocs(j, tab) {
   $("#dlg-title").textContent = `${shortTitle(j.title)} · ${cleanCompany(j.company)}`;
   $("#ed-headline").value = model.headline;
   $("#ed-summary").value = model.summary;
+  $("#ed-location").value = model.contact[0];
   ["#ai-out", "#lai-out"].forEach((s) => { $(s).textContent = ""; $(s).classList.remove("err"); });
   $("#dl-note").textContent = ""; $("#ldl-note").textContent = "";
   $("#l-to").value = "Hiring Manager";
@@ -695,6 +701,7 @@ function paintScore() {
     (kws.length ? "" : `<p class="note">This posting has no description, so tailoring follows the job title only.</p>`);
 }
 $("#ed-headline").oninput = (e) => { model.headline = e.target.value; paint(); };
+$("#ed-location").oninput = (e) => { model.contact[0] = e.target.value.trim() || P.location; paint(); paintLetter(); };
 $("#ed-summary").oninput = (e) => { model.summary = e.target.value; paint(); };
 
 /* ---------- cover letter ---------- */
@@ -730,10 +737,10 @@ function buildLetter(j, r, includeGap) {
   ].filter(Boolean).join(" ");
   const gap = kws.filter((k) => k.k === "gap" || k.k === "xgap").sort((a, b) => b.w - a.w)[0];
   const p4 = includeGap && gap ? `I have not yet worked with ${gap.s} directly. I learn new tools and standards quickly and would make it an early priority in the role.` : "";
-  const city = (j.location || "").split(",")[0].replace(/^Greater\s+|\s+Metropolitan Area$|\s+Area$/gi, "").trim();
+  const city = j.place || (j.location || "").split(",")[0].replace(/^Greater\s+|\s+Metropolitan Area$|\s+Area$/gi, "").trim();
   const home = j.region === P.regions?.[0]?.name;
   const p5 = `I am based in ${L.home || P.location}${home ? " and can start promptly" : city ? ` and am ready to relocate to ${city}` : " and am ready to relocate"}. I would welcome the chance to discuss how I can contribute to ${possessive(company)} ${L.goal?.[j.track] || "team"} goals. Thank you for your time and consideration.`;
-  return { to: $("#l-to")?.value || "Hiring Manager", company: j.company, location: j.location, title, paragraphs: [p1, p2, p3, p4, p5].filter(Boolean), signoff: L.signoff || "Sincerely,", name: P.name, contact: r.contact };
+  return { to: $("#l-to")?.value || "Hiring Manager", company: j.company, location: j.place || j.location, title, paragraphs: [p1, p2, p3, p4, p5].filter(Boolean), signoff: L.signoff || "Sincerely,", name: P.name, contact: r.contact };
 }
 function letterDate() { try { return new Date().toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" }); } catch { return new Date().toDateString(); } }
 function letterText(L) {
