@@ -27,6 +27,8 @@ salary_data.json
 **/job_scraper/seen_jobs.json
 **/job_scraper/notion_sync.json
 **/job_scraper/*.md
+# /dashboard inputs: scraped postings and the target-employer list (personal search data).
+**/job_scraper/dashboard/
 *_BehavioralReport.pdf
 linkedin_Profile.pdf
 

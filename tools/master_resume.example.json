@@ -1,0 +1,66 @@
+{
+  "_note": "Schema for documents/cv/master_resume.json (gitignored), read by tools/build_job_dashboard.py. Copy it there and replace every [PLACEHOLDER] with lines from your own CV. Tailoring only reorders and re-emphasises these lines, so anything missing here never reaches a tailored resume.",
+  "name": "[YOUR_NAME]",
+  "location": "[YOUR_CITY], [REGION] (Willing to Relocate)",
+  "phone": "[YOUR_PHONE]",
+  "email": "[YOUR_EMAIL]",
+  "linkedin": "linkedin.com/in/[YOUR_HANDLE]",
+  "school": "[UNIVERSITY_FULL_NAME]",
+  "schoolShort": "[UNIVERSITY_SHORT_NAME]",
+  "dashboardTitle": "[YOUR_FIRST_NAME]'s Job Radar",
+  "tracks": {
+    "QE": {
+      "label": "Quality Engineering",
+      "headline": "Quality Engineer",
+      "tagline": ["[KEYWORD_1]", "[KEYWORD_2]", "[KEYWORD_3]", "[KEYWORD_4]"],
+      "summary": "[3-4 sentence summary for quality roles, using only facts from your CV]",
+      "skillOrder": ["[SKILL_GROUP_1]", "[SKILL_GROUP_2]"],
+      "projectOrder": ["[PROJECT_TITLE_1]"]
+    },
+    "PM": {
+      "label": "Project Management",
+      "headline": "Project Coordinator",
+      "tagline": ["[KEYWORD_1]", "[KEYWORD_2]"],
+      "summary": "[Summary for project roles, using only facts from your CV]",
+      "skillOrder": ["[SKILL_GROUP_2]", "[SKILL_GROUP_1]"],
+      "projectOrder": ["[PROJECT_TITLE_1]"]
+    },
+    "SCM": {
+      "label": "Supply Chain",
+      "headline": "Supply Chain Analyst",
+      "tagline": ["[KEYWORD_1]", "[KEYWORD_2]"],
+      "summary": "[Summary for supply chain roles, using only facts from your CV]",
+      "skillOrder": ["[SKILL_GROUP_1]"],
+      "projectOrder": ["[PROJECT_TITLE_1]"]
+    }
+  },
+  "skills": [
+    {"group": "[SKILL_GROUP_1]", "items": ["[SKILL]", "[SKILL]"]},
+    {"group": "[SKILL_GROUP_2]", "tracks": ["PM"], "items": ["[SKILL]"]}
+  ],
+  "experience": [
+    {"title": "[JOB_TITLE]", "company": "[COMPANY]", "location": "[CITY, COUNTRY]", "dates": "[Mon YYYY - Mon YYYY]", "bullets": ["[ACHIEVEMENT WITH A NUMBER]"]}
+  ],
+  "projects": [
+    {"title": "[PROJECT_TITLE_1]", "org": "[INSTITUTION]", "dates": "[Mon YYYY - Mon YYYY]", "bullets": ["[WHAT YOU DID AND THE RESULT]"]}
+  ],
+  "additional": [],
+  "education": [
+    {"degree": "[DEGREE], [FIELD]", "school": "[INSTITUTION, REGION]", "dates": "[Mon YYYY - Mon YYYY]"}
+  ],
+  "certifications": ["[CERTIFICATION]"],
+  "transferable": {
+    "risk": "[Short note on how adjacent experience covers this keyword, shown as an amber tag]"
+  },
+  "hooks": {
+    "rca": "[<=40-char fact for referral messages, e.g. 'root-cause work that cut defects 14%']"
+  },
+  "otherRegion": "Rest of [COUNTRY]",
+  "regions": [
+    {"name": "[HOME_REGION]", "label": "near home", "bonus": 15, "match": ["[city]", "[nearby town]"]},
+    {"name": "[PRIORITY_PROVINCE_OR_STATE]", "bonus": 10, "match": ["[province name]", ", [XX]"]}
+  ],
+  "referral": {
+    "intro": "[UNIVERSITY_SHORT_NAME] [DEGREE] grad"
+  }
+}

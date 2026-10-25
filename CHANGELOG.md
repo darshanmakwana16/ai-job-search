@@ -15,6 +15,17 @@ per-file diff commands.
 
 ### Added
 
+- **`/dashboard`: a scored job radar with one-click tailoring and referral helpers**
+  (`.claude/commands/dashboard.md`, `tools/build_job_dashboard.py`, `tools/job_dashboard_template.html`,
+  `tools/master_resume.example.json`) - scores a wide scrape against a master resume (title, keyword
+  coverage split into on-resume / transferable / gap, experience asked, location priority) and drops
+  software-QA postings from a manufacturing-quality list. Every posting gets a tailored resume built only
+  from the master resume's own lines, saved as PDF/DOCX/TXT, plus an optional Claude rewrite that flags
+  any number not in the master. Each card also gets LinkedIn recruiter, hiring-team and alumni searches,
+  and referral messages sized to LinkedIn's limits (220 / 200 characters). Descriptions pass
+  `posting_guard.py` first. Inputs live in the gitignored `job_scraper/dashboard/`, and the page is
+  written to `reports/`.
+
 - **CI runs the Python suite on Windows** (`.github/workflows/ci.yml` `python-tests-windows`) - every
   job ran on Ubuntu, so a Windows-only failure reached master with all checks green: #480's test
   (an atomic rename that Windows file locking refuses) and #486's (a tool printing non-ASCII JSON
