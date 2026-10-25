@@ -1,6 +1,10 @@
 # /dashboard - Build the Job Radar: Scored Postings with Tailored-Resume and Referral Buttons
 
-Gather fresh postings for the candidate's target tracks and regions, score every one against the master resume, and publish one private page where each posting has three buttons: **Tailored resume** (the candidate's own resume lines reordered and re-emphasised for that posting, saved as PDF / DOCX / TXT, with an optional Claude rewrite), **Referral kit** (LinkedIn searches for recruiters, the hiring team and alumni at that company) and two ready-to-send referral messages (at most 220 characters for a message, at most 200 for a LinkedIn connection note).
+Gather fresh postings for the candidate's target tracks and regions, score every one against the master resume, and publish one private page where each posting has these buttons:
+
+- **Tailored resume** - the candidate's own resume lines, reordered and re-emphasised for that posting. Every posting keyword the master resume backs appears in the posting's exact wording: in the existing lines where it already does, otherwise in a *Core Competencies* line. Unbacked keywords are listed as gaps and never written. The dialog shows a **resume score** out of 100 for the original and the tailored version (exact-wording keyword match 60, job title 10, measurable results 10, sections and contact 10, length 5, experience asked 5). Saves as PDF / DOCX / TXT, with an optional Claude rewrite.
+- **Cover letter** - a one-page letter built from the best-matching achievements, tools, certifications, transferable skills and location, with an optional sentence naming the main gap honestly. Editable in place, with an optional Claude rewrite that says nothing about the company beyond the posting. Saves as PDF / DOCX / TXT.
+- **Referral kit** - LinkedIn searches for recruiters, the hiring team and alumni at that company, plus two ready-to-send referral messages (at most 220 characters for a message, at most 200 for a LinkedIn connection note).
 
 `/dashboard` sits beside `/scrape` and `/rank`: `/scrape` finds and dedupes, `/rank` triages in depth with agents, `/apply` writes the full LaTeX application. `/dashboard` is the fast, wide view across hundreds of postings, which the user works through by clicking. Its scores are keyword triage, not `/apply`'s evaluation.
 
@@ -46,8 +50,8 @@ It dedupes across sources, scores each posting out of 100 (title 35, keyword cov
 If the session has the Artifact tool, publish `reports/job_dashboard.html` with `capabilities: {"db": {}, "sample": {}, "downloads": true}`:
 
 - `db` keeps each posting's application status (collection `applications`, one document per posting id) across devices and republishes.
-- `sample` powers **Rewrite for this job**, which runs on the viewer's own Claude account and asks for consent on first use.
-- `downloads` lets the page save the PDF, DOCX and TXT resumes.
+- `sample` powers the **Rewrite resume** and **Rewrite letter** buttons, which run on the viewer's own Claude account and ask for consent on first use.
+- `downloads` lets the page save the PDF, DOCX and TXT resumes and cover letters.
 
 On the first run, store the returned URL in `job_scraper/dashboard/artifact_url.txt`. On later runs, redeploy to that URL so the link and the statuses stay the same. The page carries the candidate's contact details: it is private by default, so tell the user not to share the link publicly.
 

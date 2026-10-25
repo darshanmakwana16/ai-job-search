@@ -83,7 +83,7 @@ LEXICON = {
     "gdt": ("GD&T", [r"gd\s?&\s?t", r"geometric dimensioning", r"y14\.5"], 2),
     "blueprint": ("Blueprint / drawing reading", [r"blueprints?", r"(read|reading|interpret)\w* (engineering |technical |cad |part )?drawings", r"2d/3d drawings"], 1),
     "inspection": ("Inspection", [r"inspect"], 1),
-    "fai": ("FAI / FAIR", [r"\bfai\b", r"\bfair\b", r"first article"], 1),
+    "fai": ("FAI / FAIR", [r"\bfai\b", r"first article"], 1),
     "cmm": ("CMM", [r"\bcmm\b", r"coordinate measuring"], 1),
     "metrology": ("Metrology / gauges", [r"metrology", r"calipers?", r"micrometers?", r"measuring (instruments|equipment)", r"\bga(u)?ges\b"], 1),
     "calibration": ("Calibration", [r"calibrat"], 1),
@@ -220,6 +220,65 @@ def short_title(title: str) -> str:
     return t or title
 
 
+# Keywords whose posting wording would overstate the resume ("mentor",
+# "project management", "Microsoft Office") are written into a tailored resume
+# under their lexicon label instead of the posting's own word.
+LABEL_ONLY = {"leadership", "crossfunc", "vendor", "stakeholder", "dataanalysis", "projcoord", "inspection", "blueprint", "excel", "kpi", "scrap", "supplierq"}
+# A posting's adjective gets the noun it modifies, so a skills line reads as a skill.
+NOUNIFY = {"ncr": (r"conforming$", " product")}
+# Domain words describe the employer, not a skill: scored, never written into a resume.
+NO_ROW = {"automotive", "aerospace", "ev", "oilgas", "medical"}
+# Industry acronyms and tool names the lexicon does not cover. Matched as whole
+# words (all-caps entries case-sensitively), and only reported - never added to
+# a resume unless the master resume already contains the same token.
+EXTRA_TERMS = [
+    "CNC", "OEE", "DFM", "DFA", "DOE", "ANOVA", "PDCA", "RCCA", "RPN", "CTQ", "SIPOC", "DPMO", "LPA", "CQI-9", "VDA", "IMDS", "PSW", "ISIR",
+    "Kanban", "Takt", "Andon", "WIP", "JIT", "TPS", "MES", "PLM", "ECN", "ECO", "CMMS", "SCADA", "HMI", "FEA", "CAM", "Catia", "NX",
+    "S&OP", "SIOP", "IBP", "DDMRP", "VMI", "EOQ", "FIFO", "WMS", "TMS", "EDI", "MRO", "LTL", "FTL", "CUSMA", "USMCA", "Incoterms", "CBSA",
+    "3PL", "SCMP", "CPSM", "CSCMP", "JDE", "QAD", "Infor", "Kinaxis", "Coupa", "Ariba", "Tableau", "Smartsheet", "JMP", "VBA", "Power Automate",
+    "PMBOK", "PRINCE2", "WBS", "EVM", "RACI", "CPM", "CAPEX", "OPEX", "Agile", "Asana", "Jira",
+    "AS9102", "NADCAP", "IPC", "ESD", "RoHS", "ASTM", "API", "ITAR", "CWI", "N299", "N285", "N286", "SQF", "BRCGS", "FSSC", "GFSI", "CFIA",
+    "ISO 17025", "ISO 45001", "CQA", "CMQ",
+]
+
+
+def surface_of(term: str, text: str, lex) -> str:
+    """The posting's own wording for a lexicon term, widened to whole words."""
+    for pat in lex[term][1]:
+        m = pat.search(text)
+        if m:
+            start, end = m.start(), m.end()
+            while start > 0 and text[start - 1].isalnum():
+                start -= 1
+            while end < len(text) and (text[end].isalnum() or text[end] in "+#"):
+                end += 1
+            return re.sub(r"\s+", " ", text[start:end]).strip()[:40]
+    return lex[term][0]
+
+
+def keyword_rows(text: str, desc: str, corpus: str, lex, matched, partial, gaps) -> list:
+    """Every posting keyword with the posting's wording, its status against the
+    resume, and what a tailored resume may write for it (only when backed)."""
+    rows = []
+    for kind, ids in (("ok", matched), ("tr", partial), ("gap", gaps)):
+        for t in ids:
+            surface = surface_of(t, text, lex)
+            show = "" if t in NO_ROW else lex[t][0] if t in LABEL_ONLY else (surface[:1].upper() + surface[1:] if surface.islower() else surface)
+            if t in NOUNIFY and re.search(NOUNIFY[t][0], show, re.I):
+                show += NOUNIFY[t][1]
+            rows.append({"t": t, "s": surface, "show": show if kind == "ok" else "", "k": kind, "w": lex[t][2], "label": lex[t][0]})
+    taken = [m.span() for _, pats, _ in lex.values() for p in pats for m in p.finditer(desc)]
+    for term in EXTRA_TERMS:
+        flags = 0 if term.isupper() or any(c.isdigit() for c in term) else re.I
+        pat = re.compile(r"(?<![A-Za-z0-9])" + re.escape(term) + r"(?![A-Za-z0-9])", flags)
+        m = pat.search(desc)
+        if not m or any(a < m.end() and m.start() < b for a, b in taken):
+            continue
+        backed = pat.search(corpus) is not None
+        rows.append({"t": "x:" + term, "s": m.group(0), "show": term if backed else "", "k": "xok" if backed else "xgap", "w": 1, "label": term})
+    return rows
+
+
 def compile_lexicon():
     return {k: (label, [re.compile(p, re.I) for p in pats], w) for k, (label, pats, w) in LEXICON.items()}
 
@@ -348,7 +407,7 @@ def referral_links(job: dict, track: str, region: str, profile: dict) -> list:
     return links
 
 
-def score_job(job: dict, profile: dict, lex, supported: set) -> dict:
+def score_job(job: dict, profile: dict, lex, supported: set, corpus: str = "") -> dict:
     desc_raw = job.get("description") or ""
     desc, findings = guard(desc_raw, "text") if desc_raw else ("", {"instruction_like": [], "verdict": "posting_guard: no description"})
     text = f"{job['title']}\n{desc}"
@@ -399,6 +458,7 @@ def score_job(job: dict, profile: dict, lex, supported: set) -> dict:
         "matched": matched, "partial": partial, "gaps": gaps, "years": years, "region": region["name"], "flags": flags,
         "guard": {"verdict": findings.get("verdict", ""), "instructionLike": findings.get("instruction_like", [])[:3]},
         "jd": desc[:JD_EXCERPT], "hooks": hooks,
+        "keywords": keyword_rows(text, desc, corpus, lex, matched, partial, gaps),
     }
 
 
@@ -418,11 +478,12 @@ def dedupe(jobs: list) -> list:
 
 def build(profile: dict, jobs: list, companies: list, min_score: int) -> dict:
     lex = compile_lexicon()
-    supported = set(terms_in(profile_corpus(profile), lex))
+    corpus = profile_corpus(profile)
+    supported = set(terms_in(corpus, lex))
     bullet_tags(profile, lex)
     out = []
     for job in dedupe(jobs):
-        scored = score_job(job, profile, lex, supported)
+        scored = score_job(job, profile, lex, supported, corpus)
         if scored["offTarget"] or scored["score"] < min_score:
             continue
         record = {k: job.get(k, "") for k in ("id", "title", "company", "companyUrl", "location", "date", "url", "source", "salary", "seniority", "employmentType")}

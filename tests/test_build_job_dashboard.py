@@ -27,7 +27,7 @@ PROFILE = {
         "PM": {"label": "Projects", "headline": "Project Coordinator", "tagline": [], "summary": "Coordinated projects."},
         "SCM": {"label": "Supply chain", "headline": "Supply Chain Analyst", "tagline": [], "summary": "Forecast demand."},
     },
-    "skills": [{"group": "Quality", "items": ["PPAP", "SPC", "root-cause analysis", "5-Why"]}],
+    "skills": [{"group": "Quality", "items": ["PPAP", "SPC", "root-cause analysis", "5-Why", "NCR disposition", "team leadership"]}],
     "experience": [{"title": "Quality Engineer", "company": "Acme", "location": "Town", "dates": "2020 - 2023",
                     "bullets": ["Ran PPAP submissions and cut defects 14% with 5-Why root-cause analysis."]}],
     "projects": [],
@@ -93,6 +93,49 @@ class ScoringTest(unittest.TestCase):
         jobs = build(a, b)["jobs"]
         self.assertEqual(len(jobs), 1)
         self.assertEqual(jobs[0]["alsoOn"][0]["source"], "Indeed")
+
+
+class KeywordAlignmentTest(unittest.TestCase):
+    def rows(self, desc, **over):
+        rec = build(job(description=desc, **over))["jobs"][0]
+        return {r["t"]: r for r in rec["keywords"]}
+
+    def test_backed_keyword_keeps_the_postings_wording(self):
+        rows = self.rows(MFG_DESC.replace("SPC", "Statistical Process Control"))
+        self.assertEqual(rows["spc"]["k"], "ok")
+        self.assertEqual(rows["spc"]["s"], "Statistical Process Control")
+        self.assertEqual(rows["spc"]["show"], "Statistical Process Control", "a backed keyword is written in the posting's words")
+
+    def test_gaps_are_reported_but_never_offered_for_the_resume(self):
+        rows = self.rows(MFG_DESC)
+        self.assertEqual(rows["mrp"]["k"], "gap")
+        self.assertEqual(rows["mrp"]["show"], "", "an unbacked keyword must never be written into a resume")
+        self.assertEqual(rows["risk"]["k"], "tr")
+        self.assertEqual(rows["risk"]["show"], "")
+
+    def test_partial_regex_hits_widen_to_whole_words(self):
+        rows = self.rows(MFG_DESC + " Perform incoming inspections.")
+        self.assertEqual(rows["inspection"]["s"], "inspections")
+
+    def test_overstating_wording_uses_the_neutral_label(self):
+        rows = self.rows(MFG_DESC + " Mentor junior technicians and lead the team.")
+        self.assertEqual(rows["leadership"]["show"], "Team leadership")
+
+    def test_domain_words_are_scored_but_not_written(self):
+        rows = self.rows(MFG_DESC)
+        self.assertIn("automotive", rows)
+        self.assertEqual(rows["automotive"]["show"], "")
+
+    def test_adjective_surface_gets_its_noun(self):
+        rows = self.rows(MFG_DESC + " Control non-conforming material.")
+        self.assertEqual(rows["ncr"]["show"], "Non-conforming product")
+
+    def test_extra_industry_terms_are_reported_as_gaps(self):
+        rows = self.rows(MFG_DESC + " Experience with CNC machining and OEE tracking. Fair wages and AODA accommodation.")
+        self.assertEqual(rows["x:CNC"]["k"], "xgap")
+        self.assertIn("x:OEE", rows)
+        self.assertNotIn("fai", rows, "the word 'fair' is not a first-article inspection keyword")
+        self.assertFalse(any(t.startswith("x:AODA") for t in rows))
 
 
 class ReferralTest(unittest.TestCase):

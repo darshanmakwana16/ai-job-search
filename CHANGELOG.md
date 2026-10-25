@@ -22,8 +22,11 @@ per-file diff commands.
   software-QA postings from a manufacturing-quality list. Every posting gets a tailored resume built only
   from the master resume's own lines, saved as PDF/DOCX/TXT, plus an optional Claude rewrite that flags
   any number not in the master. Each card also gets LinkedIn recruiter, hiring-team and alumni searches,
-  and referral messages sized to LinkedIn's limits (220 / 200 characters). Descriptions pass
-  `posting_guard.py` first. Inputs live in the gitignored `job_scraper/dashboard/`, and the page is
+  and referral messages sized to LinkedIn's limits (220 / 200 characters). A **cover letter** per posting
+  is built from the best-matching resume achievements and saved as PDF/DOCX/TXT. A **resume score**
+  compares the original resume with the tailored one. Tailoring writes every backed posting keyword in
+  the posting's exact wording (verified across all postings in the page) and never writes a gap.
+  Descriptions pass `posting_guard.py` first. Inputs live in the gitignored `job_scraper/dashboard/`, and the page is
   written to `reports/`.
 
 - **CI runs the Python suite on Windows** (`.github/workflows/ci.yml` `python-tests-windows`) - every
