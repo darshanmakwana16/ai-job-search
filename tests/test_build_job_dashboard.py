@@ -153,12 +153,18 @@ class ResumeLocationTest(unittest.TestCase):
         for (loc, prov), want in cases.items():
             self.assertEqual(bjd.city_province(loc, prov), want, loc)
 
-    def test_resume_uses_the_job_city_and_marks_relocation(self):
+    def test_resume_uses_the_job_city(self):
         home = build(job(location="Hometown, Ontario, Canada"))["jobs"][0]
         away = build(job(location="Calgary, Alberta, Canada"))["jobs"][0]
         self.assertEqual(home["resumeLocation"], "Hometown, ON")
-        self.assertEqual(away["resumeLocation"], "Calgary, AB (Relocating)")
+        self.assertEqual(away["resumeLocation"], "Calgary, AB", "no note unless the profile asks for one")
         self.assertEqual(away["place"], "Calgary, AB")
+
+    def test_optional_relocation_note_marks_only_away_jobs(self):
+        profile = dict(PROFILE, relocationNote="(Relocating)")
+        recs = bjd.build(json.loads(json.dumps(profile)), [job(id="h", location="Hometown, ON"), job(id="a", location="Calgary, AB", title="Supplier Quality Engineer")], [], 0)["jobs"]
+        got = {r["id"]: r["resumeLocation"] for r in recs}
+        self.assertEqual(got, {"h": "Hometown, ON", "a": "Calgary, AB (Relocating)"})
 
     def test_unplaceable_job_keeps_the_profile_location(self):
         profile = dict(PROFILE, location="Hometown, ON (Willing to Relocate)")

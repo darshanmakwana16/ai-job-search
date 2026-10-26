@@ -340,15 +340,16 @@ def city_province(location: str, region_province: str = "") -> str:
 
 def resume_location(job: dict, region_name: str, profile: dict) -> tuple:
     """The location line for a resume tailored to this job: the job's own city,
-    marked as a relocation when it is outside the candidate's home region."""
+    followed by the profile's optional relocationNote when the job is outside the
+    candidate's home region."""
     regions = profile.get("regions", [])
     region = next((r for r in regions if r.get("name") == region_name), {})
     place = city_province(job.get("location", ""), region.get("province", ""))
     if not place:
         return profile.get("location", ""), ""
     home = regions[0].get("name") if regions else None
-    note = "" if region_name == home else " " + profile.get("relocationNote", "(Relocating)")
-    return place + note, place
+    note = profile.get("relocationNote", "")
+    return (place + " " + note if note and region_name != home else place), place
 
 
 def classify_region(location: str, regions: list, other: str = "Elsewhere") -> dict:

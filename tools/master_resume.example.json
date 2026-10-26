@@ -60,12 +60,13 @@
     {"name": "[HOME_REGION]", "label": "near home", "province": "[XX]", "bonus": 15, "match": ["[city]", "[nearby town]"]},
     {"name": "[PRIORITY_PROVINCE_OR_STATE]", "province": "[XX]", "bonus": 10, "match": ["[province name]", ", [XX]"]}
   ],
-  "relocationNote": "(Relocating)",
+  "relocationNote": "",
   "letter": {
     "intro": "I hold a [DEGREE] from [UNIVERSITY] and bring [N]+ years of experience in {focus}.",
     "focus": {"QE": "[what you did in quality roles]", "PM": "[what you did coordinating projects]", "SCM": "[supply chain work]"},
     "goal": {"QE": "quality", "PM": "project delivery", "SCM": "supply chain"},
     "current": "[One sentence on your current role, facts only]",
+    "currentAway": "[Optional: the same sentence without your town, used for jobs outside your home region]",
     "home": "[YOUR_CITY, REGION]",
     "signoff": "Sincerely,"
   },

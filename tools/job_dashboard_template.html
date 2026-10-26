@@ -260,7 +260,7 @@ dialog::backdrop { background: rgba(10, 16, 22, .55); }
       <div>
         <h4>Location on resume</h4>
         <input type="text" id="ed-location" aria-label="Location on resume">
-        <p class="note" style="margin-top:4px">Set to this job's city. "(Relocating)" marks jobs outside your home region, so a recruiter knows you'll move there.</p>
+        <p class="note" style="margin-top:4px">Set to this job's city. Edit it if you want something else on this resume.</p>
       </div>
       <div>
         <h4>Headline</h4>
@@ -367,6 +367,8 @@ function phrase(s) {
   return s.split(" ").map((w) => (/^[A-Z][a-z]+$/.test(w) && !PROPER_WORDS.has(w) ? w.toLowerCase() : w)).join(" ");
 }
 const PROPER_WORDS = new Set(["Excel", "Minitab", "Python", "SolidWorks", "Power", "Kaizen", "Lean", "Six", "Sigma", "Pareto", "Fishbone", "Ishikawa", "Poka", "Yoke", "Microsoft", "Office"]);
+function where(e) { return [e.company, e.location].filter(Boolean).join(", "); }
+function isHome(loc) { const l = String(loc || "").toLowerCase(); return (P.regions?.[0]?.match || []).some((m) => l.includes(m)); }
 function possessive(name) { return /s$/i.test(name) ? name + "'" : name + "'s"; }
 function asSentence(b) { return lcFirst(b).replace(/;\s+(?=[a-z])/g, ", and "); }
 const PROPER = new Set(["Excel", "Minitab", "Python", "SolidWorks", "Power BI", "SQL", "Kaizen", "Cp/Cpk capability", "Six Sigma", "Six Sigma / DMAIC", "Poka-Yoke / error proofing", "Fishbone / Ishikawa", "Pareto analysis", "Lean"]);
@@ -588,12 +590,15 @@ function tailor(j) {
   }).sort((a, b) => (b.m > 0) - (a.m > 0) || a.o - b.o).slice(0, 6);
   const sortBullets = (e) => e.bullets.map((b, i) => ({ b, s: (e.bulletTags?.[i] || []).filter((t) => hit.has(t)).length, i }))
     .sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.b);
-  const experience = P.experience.map((e) => ({ ...e, bullets: sortBullets(e) }));
+  // Applying outside the home region: a job held there keeps its title and dates but not its town.
+  const away = j.region !== P.regions?.[0]?.name;
+  const local = (e) => (away && isHome(e.location) ? { ...e, location: "" } : e);
+  const experience = P.experience.map((e) => local({ ...e, bullets: sortBullets(e) }));
   const projScore = (p) => (p.bulletTags || []).flat().filter((t) => hit.has(t)).length;
   const porder = T.projectOrder || [];
   const projects = P.projects.slice().sort((a, b) => projScore(b) - projScore(a) || porder.indexOf(a.title) - porder.indexOf(b.title)).map((p) => ({ ...p, bullets: sortBullets(p) }));
   const r = { name: P.name, headline: targetHeadline(j), tagline, summary, contact: [j.resumeLocation || P.location, P.phone, P.email, P.linkedin],
-    skills, experience, projects, additional: P.additional || [], education: P.education, certifications: P.certifications, core: [], notes: [] };
+    skills, experience, projects, additional: (P.additional || []).map(local), education: P.education, certifications: P.certifications, core: [], notes: [] };
   return align(r, j);
 }
 /* Exact-wording alignment: every keyword the resume backs gets the posting's own
@@ -673,9 +678,9 @@ function paint() {
     <div class="ct">${esc(r.contact.join(" • "))}</div>
     <h2>Professional Summary</h2><p>${esc(r.summary)}</p>
     <h2>Technical Skills &amp; Core Competencies</h2>${coreRow}${skillRows}
-    <h2>Professional Experience</h2>${r.experience.map((e) => ent(e, `${e.company}, ${e.location}`)).join("")}
+    <h2>Professional Experience</h2>${r.experience.map((e) => ent(e, where(e))).join("")}
     <h2>Key Projects</h2>${r.projects.map((p) => ent(p, p.org)).join("")}
-    ${r.additional.length ? `<h2>Additional Experience</h2>${r.additional.map((e) => ent(e, `${e.company}, ${e.location}`)).join("")}` : ""}
+    ${r.additional.length ? `<h2>Additional Experience</h2>${r.additional.map((e) => ent(e, where(e))).join("")}` : ""}
     <h2>Education</h2>${r.education.map((e) => `<div class="ent"><span><b>${esc(e.degree)}</b> — ${esc(e.school)}</span><span>${esc(e.dates)}</span></div>`).join("")}
     <h2>Certifications</h2><p>${esc(r.certifications.join(" · "))}</p>`;
   paintScore();
@@ -733,7 +738,7 @@ function buildLetter(j, r, includeGap) {
     tools.length ? `I am proficient in ${joinList(tools)}.` : "",
     done.length ? `My certifications include ${joinList(done)}${doing.length ? `, and I am completing ${joinList(doing)}` : ""}.` : doing.length ? `I am completing ${joinList(doing)}.` : "",
     ...tr.map((k) => `For ${phrase(k.label)}, I can draw on ${P.transferable[k.t]}.`),
-    L.current || "",
+    (j.region !== P.regions?.[0]?.name && L.currentAway) || L.current || "",
   ].filter(Boolean).join(" ");
   const gap = kws.filter((k) => k.k === "gap" || k.k === "xgap").sort((a, b) => b.w - a.w)[0];
   const p4 = includeGap && gap ? `I have not yet worked with ${gap.s} directly. I learn new tools and standards quickly and would make it an early priority in the role.` : "";
@@ -901,9 +906,9 @@ function asText(r) {
   if (r.core?.length) L.push(`Core Competencies: ${r.core.join(", ")}`);
   r.skills.forEach((g) => L.push(`${g.group}: ${g.items.map((x) => x.it).join(", ")}`));
   const ent = (e, org) => { L.push("", `${e.title} - ${org} (${e.dates})`); e.bullets.forEach((b) => L.push(`- ${b}`)); };
-  L.push("", "PROFESSIONAL EXPERIENCE"); r.experience.forEach((e) => ent(e, `${e.company}, ${e.location}`));
+  L.push("", "PROFESSIONAL EXPERIENCE"); r.experience.forEach((e) => ent(e, where(e)));
   L.push("", "KEY PROJECTS"); r.projects.forEach((p) => ent(p, p.org));
-  if (r.additional.length) { L.push("", "ADDITIONAL EXPERIENCE"); r.additional.forEach((e) => ent(e, `${e.company}, ${e.location}`)); }
+  if (r.additional.length) { L.push("", "ADDITIONAL EXPERIENCE"); r.additional.forEach((e) => ent(e, where(e))); }
   L.push("", "EDUCATION"); r.education.forEach((e) => L.push(`${e.degree} - ${e.school} (${e.dates})`));
   L.push("", "CERTIFICATIONS", r.certifications.join(", "));
   return L.join("\n");
@@ -963,10 +968,10 @@ function layoutPdf(doc, r, fs, dry) {
   if (r.core?.length) k.runsAt(k.wrapRuns([{ t: "Core Competencies: ", b: true }, { t: r.core.join(" · "), b: false }], CW), M, ink);
   r.skills.forEach((g) => k.runsAt(k.wrapRuns([{ t: g.group + ": ", b: true }, { t: g.items.map((x) => x.it).join(" · "), b: false }], CW), M, ink));
   section("Professional Experience");
-  r.experience.forEach((e) => entry(e.title, `${e.company}, ${e.location}`, e.dates, e.bullets));
+  r.experience.forEach((e) => entry(e.title, where(e), e.dates, e.bullets));
   section("Key Projects");
   r.projects.forEach((p) => entry(p.title, p.org, p.dates, p.bullets));
-  if (r.additional.length) { section("Additional Experience"); r.additional.forEach((e) => entry(e.title, `${e.company}, ${e.location}`, e.dates, e.bullets)); }
+  if (r.additional.length) { section("Additional Experience"); r.additional.forEach((e) => entry(e.title, where(e), e.dates, e.bullets)); }
   section("Education");
   r.education.forEach((e) => entry(e.degree, e.school, e.dates, []));
   section("Certifications");
@@ -1000,9 +1005,9 @@ function docxXml(r) {
     head("Technical Skills & Core Competencies"),
     ...(r.core?.length ? [par(run("Core Competencies: ", { b: true, c: "1F3A68" }) + run(r.core.join(" · ")))] : []),
     ...r.skills.map((g) => par(run(g.group + ": ", { b: true, c: "1F3A68" }) + run(g.items.map((x) => x.it).join(" · ")))),
-    head("Professional Experience"), ...r.experience.map((e) => ent(e.title, `${e.company}, ${e.location}`, e.dates, e.bullets)),
+    head("Professional Experience"), ...r.experience.map((e) => ent(e.title, where(e), e.dates, e.bullets)),
     head("Key Projects"), ...r.projects.map((p) => ent(p.title, p.org, p.dates, p.bullets)),
-    ...(r.additional.length ? [head("Additional Experience"), ...r.additional.map((e) => ent(e.title, `${e.company}, ${e.location}`, e.dates, e.bullets))] : []),
+    ...(r.additional.length ? [head("Additional Experience"), ...r.additional.map((e) => ent(e.title, where(e), e.dates, e.bullets))] : []),
     head("Education"), ...r.education.map((e) => ent(e.degree, e.school, e.dates, [])),
     head("Certifications"), par(run(r.certifications.join(" · "))),
   ].join(""));
