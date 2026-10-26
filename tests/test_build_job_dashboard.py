@@ -173,6 +173,15 @@ class ResumeLocationTest(unittest.TestCase):
         got = {r["id"]: r["resumeLocation"] for r in recs}
         self.assertEqual(got, {"h": "Hometown, ON", "a": "Calgary, AB (Relocating)"})
 
+    def test_home_region_job_is_placed_by_province_or_country(self):
+        profile = json.loads(json.dumps(PROFILE))
+        profile.update(country="Canada", regions=[{"name": "Home", "province": "ON", "bonus": 15, "match": ["hometown"]},
+                                                  {"name": "Province", "bonus": 10, "match": [", on", "ontario"]}])
+        jobs = [job(id="home", location="Hometown, ON"), job(id="prov", location="Toronto, Ontario, Canada", title="Supplier Quality Engineer"),
+                job(id="away", location="Paradise, NL", title="QA/QC Coordinator")]
+        got = {r["id"]: r["homeEntryLocation"] for r in bjd.build(profile, jobs, [], 0)["jobs"]}
+        self.assertEqual(got, {"home": None, "prov": "Ontario", "away": "Canada"})
+
     def test_unplaceable_job_keeps_the_profile_location(self):
         profile = dict(PROFILE, location="Hometown, ON (Willing to Relocate)")
         rec = bjd.build(json.loads(json.dumps(profile)), [job(location="Canada")], [], 0)["jobs"][0]

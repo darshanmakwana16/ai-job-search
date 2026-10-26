@@ -315,6 +315,8 @@ PROVINCES = {
     "yukon": "YT", "northwest territories": "NT", "nunavut": "NU",
 }
 PROVINCE_CODES = set(PROVINCES.values())
+PROVINCE_NAMES = {"ON": "Ontario", "NL": "Newfoundland and Labrador", "QC": "Quebec", "BC": "British Columbia", "AB": "Alberta", "SK": "Saskatchewan",
+                  "MB": "Manitoba", "NS": "Nova Scotia", "NB": "New Brunswick", "PE": "Prince Edward Island", "YT": "Yukon", "NT": "Northwest Territories", "NU": "Nunavut"}
 # LinkedIn's "Greater <city> Metropolitan Area" names no province.
 METRO_PROVINCE = {"toronto": "ON", "ottawa": "ON", "windsor": "ON", "london": "ON", "hamilton": "ON", "kitchener": "ON", "st. john's": "NL",
                   "montreal": "QC", "quebec": "QC", "vancouver": "BC", "calgary": "AB", "edmonton": "AB", "winnipeg": "MB", "halifax": "NS", "regina": "SK", "saskatoon": "SK"}
@@ -353,6 +355,21 @@ def resume_location(job: dict, region_name: str, profile: dict) -> tuple:
     line = f"{place}, {country}" if country and not place.endswith(country) else place
     note = profile.get("relocationNote", "")
     return (line + " " + note if note and region_name != home else line), place
+
+
+def home_entry_location(place: str, region_name: str, profile: dict):
+    """How a job the candidate held in their home region is placed on a resume
+    for this posting: unchanged at home (None), the home province when the job
+    is elsewhere in that province, else the country. Always true, never moved."""
+    regions = profile.get("regions", [])
+    if not regions or region_name == regions[0].get("name"):
+        return None
+    home_prov = regions[0].get("province", "")
+    tail = place.rsplit(",", 1)[-1].strip() if place else ""
+    job_prov = tail if tail in PROVINCE_CODES else PROVINCES.get(place.lower(), "") if place else ""
+    if home_prov and job_prov == home_prov:
+        return PROVINCE_NAMES.get(home_prov, home_prov)
+    return profile.get("country", "")
 
 
 def classify_region(location: str, regions: list, other: str = "Elsewhere") -> dict:
@@ -536,6 +553,7 @@ def build(profile: dict, jobs: list, companies: list, min_score: int) -> dict:
         record["alsoOn"] = job.get("alsoOn", [])
         record.update(scored)
         record["resumeLocation"], record["place"] = resume_location(job, scored["region"], profile)
+        record["homeEntryLocation"] = home_entry_location(record["place"], scored["region"], profile)
         record["links"] = referral_links(job, scored["track"], scored["region"], profile)
         record.update(build_messages(job, scored["hooks"], profile))
         out.append(record)
