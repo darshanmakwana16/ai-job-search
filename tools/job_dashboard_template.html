@@ -590,10 +590,11 @@ function tailor(j) {
   }).sort((a, b) => (b.m > 0) - (a.m > 0) || a.o - b.o).slice(0, 6);
   const sortBullets = (e) => e.bullets.map((b, i) => ({ b, s: (e.bulletTags?.[i] || []).filter((t) => hit.has(t)).length, i }))
     .sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.b);
-  // Applying outside the home region: a job held there names only its province (same-province
-  // postings) or the country, never a town it wasn't in.
+  // A job held in the home region: its town for home-region postings; otherwise only its province
+  // (same-province postings) or the country, never a town it wasn't in. The country follows either way.
   const away = j.region !== P.regions?.[0]?.name;
-  const local = (e) => (away && isHome(e.location) ? { ...e, location: j.homeEntryLocation || "" } : e);
+  const withCountry = (loc) => (loc && P.country && !loc.endsWith(P.country) ? `${loc}, ${P.country}` : loc);
+  const local = (e) => (isHome(e.location) ? { ...e, location: withCountry(away ? j.homeEntryLocation || "" : e.location) } : e);
   const experience = P.experience.map((e) => local({ ...e, bullets: sortBullets(e) }));
   const projScore = (p) => (p.bulletTags || []).flat().filter((t) => hit.has(t)).length;
   const porder = T.projectOrder || [];
