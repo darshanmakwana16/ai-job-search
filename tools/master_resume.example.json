@@ -60,6 +60,7 @@
     {"name": "[HOME_REGION]", "label": "near home", "province": "[XX]", "bonus": 15, "match": ["[city]", "[nearby town]"]},
     {"name": "[PRIORITY_PROVINCE_OR_STATE]", "province": "[XX]", "bonus": 10, "match": ["[province name]", ", [XX]"]}
   ],
+  "country": "[COUNTRY, or empty to leave it off]",
   "relocationNote": "",
   "letter": {
     "intro": "I hold a [DEGREE] from [UNIVERSITY] and bring [N]+ years of experience in {focus}.",

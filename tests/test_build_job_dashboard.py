@@ -160,6 +160,13 @@ class ResumeLocationTest(unittest.TestCase):
         self.assertEqual(away["resumeLocation"], "Calgary, AB", "no note unless the profile asks for one")
         self.assertEqual(away["place"], "Calgary, AB")
 
+    def test_optional_country_follows_the_province(self):
+        profile = dict(PROFILE, country="Canada")
+        recs = bjd.build(json.loads(json.dumps(profile)), [job(id="h", location="Hometown, ON"), job(id="a", location="Greater St. John's Metropolitan Area", title="Supplier Quality Engineer")], [], 0)["jobs"]
+        got = {r["id"]: (r["resumeLocation"], r["place"]) for r in recs}
+        self.assertEqual(got["h"], ("Hometown, ON, Canada", "Hometown, ON"))
+        self.assertEqual(got["a"], ("St. John's, NL, Canada", "St. John's, NL"))
+
     def test_optional_relocation_note_marks_only_away_jobs(self):
         profile = dict(PROFILE, relocationNote="(Relocating)")
         recs = bjd.build(json.loads(json.dumps(profile)), [job(id="h", location="Hometown, ON"), job(id="a", location="Calgary, AB", title="Supplier Quality Engineer")], [], 0)["jobs"]
